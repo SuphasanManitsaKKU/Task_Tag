@@ -1,0 +1,9 @@
+services:
+  db:
+    image: mysql  # You can specify the version of MySQL here
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678  # Set the root password
+      MYSQL_DATABASE: sofdevhexagonal          # Name of the initial database
+    ports:
+      - "3308:3306"  # Expose MySQL on port 3306

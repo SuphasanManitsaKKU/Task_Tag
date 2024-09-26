@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload and Delete Video</title>
+</head>
+
+<body>
+
+    <h1>Upload Video</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="file">Select video:</label>
+        <input type="file" id="file" name="file" accept="video/*" required><br><br>
+
+        <label for="title">Video Title:</label>
+        <input type="text" id="title" name="title" required><br><br>
+
+        <!-- เพิ่มฟิลด์ userId ที่เป็น hidden -->
+        <input type="hidden" id="userId" name="userId" value="test1">
+
+        <button type="submit">Upload</button>
+    </form>
+
+
+    <hr>
+
+    <h1>Delete Video</h1>
+    <form id="deleteForm">
+        <label for="videoDropdown">Select video to delete:</label>
+        <select id="videoDropdown" name="videoDropdown" required>
+            <option value="" disabled selected>Select a video</option>
+        </select><br><br>
+
+        <button type="submit">Delete</button>
+    </form>
+
+    <hr>
+
+    <h1>All Videos</h1>
+    <div id="videoList">
+        <!-- วิดีโอทั้งหมดจะถูกแสดงที่นี่ -->
+    </div>
+
+    <p id="response"></p>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const deleteForm = document.getElementById('deleteForm');
+        const responseText = document.getElementById('response');
+        const videoDropdown = document.getElementById('videoDropdown');
+        const videoList = document.getElementById('videoList');
+
+        // Fetch all videos and populate dropdown and video list
+        function fetchVideos() {
+            fetch('http://127.0.0.1:8080/stream/videos')
+                .then(response => response.json())
+                .then(videos => {
+                    // ล้าง dropdown และ video list ก่อน
+                    videoDropdown.innerHTML = '<option value="" disabled selected>Select a video</option>';
+                    videoList.innerHTML = '';
+
+                    videos.forEach(video => {
+                        // เพิ่ม option ใน dropdown
+                        const option = document.createElement('option');
+                        option.value = video.id;
+                        option.text = video.title;
+                        videoDropdown.add(option);
+
+                        // ใช้ thumbnailUrl จากฐานข้อมูลโดยตรง
+                        const thumbnailElement = document.createElement('img');
+                        thumbnailElement.src = `http://127.0.0.1:8080/stream${video.thumbnailUrl}`; // ใช้ URL ของ thumbnail จากฐานข้อมูลโดยตรง
+                        thumbnailElement.alt = video.title;
+                        thumbnailElement.width = 320;
+                        thumbnailElement.height = 180;
+                        thumbnailElement.style.cursor = 'pointer';  // ทำให้คลิกได้
+
+                        // เมื่อคลิก thumbnail จะเล่นวิดีโอ โดยใช้ id ในการดึงข้อมูลวิดีโอ
+                        thumbnailElement.addEventListener('click', () => {
+                            const videoElement = document.createElement('video');
+                            videoElement.src = `http://127.0.0.1:8080/stream/${video.id}`;
+                            videoElement.controls = true;
+                            videoElement.width = 640;
+                            videoElement.height = 360;
+
+                            // ล้าง element เดิมแล้วเพิ่ม video ใหม่
+                            videoList.innerHTML = '';
+                            videoList.appendChild(videoElement);
+                            videoElement.play();
+                        });
+
+                        videoList.appendChild(thumbnailElement);
+
+                        const videoTitle = document.createElement('p');
+                        videoTitle.textContent = video.title;
+                        videoList.appendChild(videoTitle);
+                    });
+
+                })
+                .catch(error => {
+                    responseText.textContent = 'Error fetching videos: ' + error.message;
+                });
+        }
+
+        // Call fetchVideos when the page loads
+        window.onload = fetchVideos;
+
+        // Upload form submission
+        uploadForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            const titleInput = document.getElementById('title');
+            const userIdInput = document.getElementById('userId'); // รับค่า userId
+
+            formData.append('file', fileInput.files[0]);
+            formData.append('title', titleInput.value);
+            formData.append('userId', userIdInput.value); // เพิ่ม userId ลงใน formData
+
+            fetch('http://127.0.0.1:8080/stream/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    } else {
+                        throw new Error('Failed to upload the file');
+                    }
+                })
+                .then(data => {
+                    console.log("Upload response: ", data);
+                    responseText.textContent = "Upload successful!";
+                })
+                .catch(error => {
+                    console.error("Upload error: ", error);
+                    responseText.textContent = 'Error: ' + error.message;
+                });
+        });
+
+
+
+        // Delete form submission
+        deleteForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const videoId = videoDropdown.value;
+
+            fetch(`http://127.0.0.1:8080/stream/delete/${videoId}`, {
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text();
+                    } else {
+                        throw new Error('Failed to delete the video');
+                    }
+                })
+                .then(data => {
+                    console.log("Delete response: ", data);
+                    responseText.textContent = "Video deleted successfully!";
+                    fetchVideos(); // Refresh the video list after delete
+                })
+                .catch(error => {
+                    console.error("Delete error: ", error);
+                    responseText.textContent = 'Error: ' + error.message;
+                });
+        });
+
+    </script>
+
+</body>
+
+</html>

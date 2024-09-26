@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ซ่อน scrollbar บนเบราว์เซอร์ต่างๆ */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+    /* สำหรับ Chrome, Safari, และ Opera */
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    /* สำหรับ Internet Explorer และ Edge */
+    scrollbar-width: none;
+    /* สำหรับ Firefox */
+}
